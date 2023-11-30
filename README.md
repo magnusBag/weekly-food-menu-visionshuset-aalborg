@@ -62,7 +62,7 @@ If a pull-requst is accepted the feature will be automatically deployed right aw
 We welcome contributions to this project. Here's how you can contribute:
 
 1. **Fork the Repository**: Click on the 'Fork' button at the top right corner of this page.
-2. **Clone Your Fork**: `git clone https://github.com/<your-github-username>/FoodAndCoMenu.git`
+2. **Clone Your Fork**: `git clone https://github.com/magnusBag/weekly-food-menu-visionshuset-aalborg.git`
 3. **Create a New Branch**: `git checkout -b your-feature-branch`
 4. **Make Your Changes**: Implement your feature or fix.
 5. **Commit Your Changes**: `git commit -am 'Add some feature'`
