@@ -1,6 +1,5 @@
 const { app } = require('@azure/functions');
 const axios = require('axios');
-const cheerio = require('cheerio');
 
 app.http('foodAndCoNorth', {
     methods: ['GET'],
