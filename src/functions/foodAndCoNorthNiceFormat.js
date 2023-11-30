@@ -1,6 +1,5 @@
 const { app } = require('@azure/functions');
 const { BlobServiceClient } = require('@azure/storage-blob');
-const cheerio = require('cheerio');
 const axios = require('axios');
 require('dotenv').config();
 const Buffer = require('buffer').Buffer;
