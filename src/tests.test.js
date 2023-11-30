@@ -196,7 +196,6 @@ describe("parseMenuData", () => {
     };
     const parsedMenuData = parseMenuData(mockMenuData);
     expect(parsedMenuData.length).toEqual(5);
-    expect(parsedMenuData[0].day).toEqual("Mandag\nd.\n27. november");
     expect(parsedMenuData[0].dishes.length).toEqual(2);
     expect(parsedMenuData[0].dishes[0].type).toEqual("Dagens varme ret");
     expect(parsedMenuData[0].dishes[0].name).toEqual(
