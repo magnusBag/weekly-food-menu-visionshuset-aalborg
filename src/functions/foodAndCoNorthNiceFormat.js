@@ -254,62 +254,70 @@ async function streamToJSON(readableStream) {
     return JSON.parse(jsonString);
 }
 
-async function getDataFromFoodAndCoWebPage() {
-    const date = new Date();    
-    const formattedDate = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();        
-    const response = await axios.get('https://www.shop.foodandco.dk/api/WeeklyMenu?restaurantId=1073&languageCode=da-DK&date=' + formattedDate);
-    const daysMenu = response.data.days.reduce((acc, day) => {
-        const menusForDay = day.menus.map(menuItem => {
-            return {name: menuItem.menu, type: menuItem.type}
-        });
-        return acc.concat(menusForDay);
-      }, []);
-    
-    return await processMenuWithPics(daysMenu);
+const FOOD_AND_CO_API_URL = 'https://www.shop.foodandco.dk/api/WeeklyMenu?restaurantId=1073&languageCode=da-DK&date=';
+const OPENAI_API_URL = 'https://api.openai.com/v1/images/generations';
+
+async function getDataFromFoodAndCoWebPage(axiosInstance) {
+    const formattedDate = formatDate(new Date());        
+    const response = await axiosInstance.get(`${FOOD_AND_CO_API_URL}${formattedDate}`);
+    const daysMenu = parseMenuData(response.data);
+    return processMenuWithPics(daysMenu, axiosInstance);
 };
 
-async function createImageFromPromt(prompt, blobName, model='dall-e-3') {
-    try {
+function formatDate(date) {
+    return new Intl.DateTimeFormat('en-GB').format(date);
+}
 
-        const response = await axios.post('https://api.openai.com/v1/images/generations', {
-            model,
-            prompt,
-            n: 1,
-            size: model === 'dall-e-3' ? '1024x1024' : '512x512',
-            response_format: 'b64_json',
+function parseMenuData(data) {
+    const daysMenu = data.days.map(day => {
+        return {
+          day: `${day.dayOfWeek}\nd.\n${new Date(day.date).getDate()}. ${new Date(day.date).toLocaleString('default', { month: 'long' })}`,
+          dishes: day.menus.map(menu => ({
+            type: menu.type,
+            name: menu.menu,
+          }))
+        };
+      });
+      return daysMenu;
+}
+
+async function createImageFromPrompt(prompt, blobName, axiosInstance, model='dall-e-3') {
+    try {
+        const [year, week] = getWeekNumber();
+        blobName = `${year}-${week}/${blobName}`;
+        const imageSize = model === 'dall-e-3' ? '1024x1024' : '512x512';
+
+        const response = await axiosInstance.post(`${OPENAI_API_URL}`, {
+            model, prompt, n: 1, size: imageSize, response_format: 'b64_json'
         }, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-            },
-        }, { responseType: 'application/json' });
-        const [year, week] = getWeekNumber();
-        const data = response.data.data;
-        const base64 = data[0].b64_json;
-        blobName = `${year}-${week}/${blobName}`;
-        return await uploadBase64ImageToBlobStorage(base64, blobName);
+            }
+        });
+
+        const base64 = response.data.data[0].b64_json;
+        return uploadBase64ImageToBlobStorage(base64, blobName);
     } catch (error) {
-        // if the error is status 429 (too many requests) then wait for a minute and try again
-        if (error.response.status === 429) {
+        if (error.response && error.response.status === 429) {
             console.log('Too many requests. Waiting for a minute...');
             await new Promise(resolve => setTimeout(resolve, 60000));
-            return await createImageFromPromt(prompt, blobName, model);
+            return createImageFromPrompt(prompt, blobName, axiosInstance, model);
+        } else {
+            throw error;
         }
     }
 }
 
-async function processMenuWithPics(daysMenu) {
-    const menuWithPics = await Promise.all(daysMenu.map(async (day, dayIndex) => {
-        const dishesPromises = day.dishes.map(async (dish,i) => {
-            if (i === 0) {
-                dish.picUrl = await createImageFromPromt(dish.name, `${dayIndex}-${i}.png`);
-            } else {
-                dish.picUrl = await createImageFromPromt(dish.name, `${dayIndex}-${i}.png`);
-            }
-            return dish;
-        });
+async function processMenuWithPics(daysMenu, axiosInstance) {
+    return Promise.all(daysMenu.map(async (day, dayIndex) => {
+        const dishesPromises = day.dishes.map((dish, i) => 
+            createImageFromPrompt(dish.name, `${dayIndex}-${i}.png`, axiosInstance)
+                .then(picUrl => ({ ...dish, picUrl }))
+        );
         day.dishes = await Promise.all(dishesPromises);
         return day;
     }));
-    return menuWithPics;
 }
+
+module.exports = { generateHtml, parseMenuData };
