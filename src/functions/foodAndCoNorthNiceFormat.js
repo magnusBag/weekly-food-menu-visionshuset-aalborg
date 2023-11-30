@@ -256,27 +256,15 @@ async function streamToJSON(readableStream) {
 }
 
 async function getDataFromFoodAndCoWebPage() {
-    const response = await axios.get('https://www.shop.foodandco.dk/visionshuset');
-    const html = response.data;
-    const $ = cheerio.load(html);
-    const daysMenu = [];
-
-    let currentDay = null;
-
-    $('.products.clearfix li').each((index, element) => {
-        if ($(element).hasClass('headline')) {
-            currentDay = $(element).find('h3').text().trim();
-        } else if ($(element).hasClass('product') && currentDay) {
-            const dishType = $(element).find('div').first().text().trim();
-            const dishName = $(element).find('div').last().text().trim();
-            let dayObject = daysMenu.find(day => day.day === currentDay);
-            if (!dayObject) {
-                dayObject = { day: currentDay, dishes: [] };
-                daysMenu.push(dayObject);
-            }          
-            dayObject.dishes.push({ type: dishType, name: dishName });
-        }
-    });
+    const date = new Date();    
+    const formattedDate = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate();        
+    const response = await axios.get('https://www.shop.foodandco.dk/api/WeeklyMenu?restaurantId=1073&languageCode=da-DK&date=' + formattedDate);
+    const daysMenu = response.data.days.reduce((acc, day) => {
+        const menusForDay = day.menus.map(menuItem => {
+            return {name: menuItem.menu, type: menuItem.type}
+        });
+        return acc.concat(menusForDay);
+      }, []);
     
     return await processMenuWithPics(daysMenu);
 };
