@@ -258,6 +258,7 @@ const FOOD_AND_CO_API_URL = 'https://www.shop.foodandco.dk/api/WeeklyMenu?restau
 const OPENAI_API_URL = 'https://api.openai.com/v1/images/generations';
 
 async function getDataFromFoodAndCoWebPage(axiosInstance) {
+    axiosInstance = axiosInstance || axios.create();
     const formattedDate = formatDate(new Date());        
     const response = await axiosInstance.get(`${FOOD_AND_CO_API_URL}${formattedDate}`);
     const daysMenu = parseMenuData(response.data);
@@ -265,7 +266,10 @@ async function getDataFromFoodAndCoWebPage(axiosInstance) {
 };
 
 function formatDate(date) {
-    return new Intl.DateTimeFormat('en-GB').format(date);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 function parseMenuData(data) {
@@ -282,6 +286,7 @@ function parseMenuData(data) {
 }
 
 async function createImageFromPrompt(prompt, blobName, axiosInstance, model='dall-e-3') {
+    promt = prompt.length < 5 ? 'Make a picture of a nice weekend' : prompt;
     try {
         const [year, week] = getWeekNumber();
         blobName = `${year}-${week}/${blobName}`;
