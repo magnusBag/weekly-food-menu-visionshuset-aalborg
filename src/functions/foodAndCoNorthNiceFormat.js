@@ -163,8 +163,8 @@ function generateBody(daysMenu) {
         const dayClass = isPast ? 'day-container minimized' : 'day-container';
 
         bodyContent += `
-            <div class="${dayClass}" id="day-${index}" onclick="toggleDay('day-${index}')">
-                <h2 class="day">${day.day}</h2>
+            <div class="${dayClass}" id="day-${index}">
+                <h2 class="day" onclick="toggleDay('day-${index}')">${day.day}</h2>
                 <ul class="dishes">`;
 
         day.dishes.forEach(dish => {
