@@ -71,18 +71,19 @@ function generateHead() {
     <meta charset="UTF-8">
     <title>MBA menu</title>
     <script>
-      function toggleDay(dayId) {
+       function toggleDay(dayId) {
         var element = document.getElementById(dayId);
         var dishes = element.querySelector('.dishes');
-        if (element.classList.contains('minimized')) {
-          dishes.style.maxHeight = '500px';
-        } else {
-          dishes.style.maxHeight = '0';
-        }
         element.classList.toggle('minimized');
+        
+        if (element.classList.contains('minimized')) {
+          dishes.style.maxHeight = '0';
+        } else {
+          dishes.style.maxHeight = dishes.scrollHeight + 'px';
+        }
       }
     </script>
-    <style>
+     <style>
       body { font-family: 'Arial', sans-serif; color: #333; }
       .menu-container { max-width: 800px; margin: auto; padding: 20px; }
       h1 { text-align: center; color: #007bff; font-weight: normal; }
@@ -93,19 +94,39 @@ function generateHead() {
       .dish:last-child { border-bottom: none; }
       .dish-info { flex-grow: 1; font-style: italic; }
       .dish-image img { border-radius: 5px; max-width: 150px; max-height: 150px; margin-left: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
-      .day-container.minimized .dishes { display: none; }
-      .dishes { overflow: hidden; transition: max-height 0.3s ease-out; }
-      li.dish:hover { background-color: #f0f0f0; transition: transform 0.3s ease-out; }
+      .dishes { overflow: hidden; transition: max-height 0.5s ease-out; max-height: 0; }
+      .day-container:not(.minimized) .dishes { max-height: 1000px; }
+      li.dish { transform: translateY(20px); opacity: 0; transition: transform 0.3s ease-out, opacity 0.3s ease-out; }
+      .day-container:not(.minimized) li.dish { transform: translateY(0); opacity: 1; }
+      .day-container:not(.minimized) li.dish:nth-child(1) { transition-delay: 0.1s; }
+      .day-container:not(.minimized) li.dish:nth-child(2) { transition-delay: 0.2s; }
+      .day::before {
+        content: '▼';
+        display: inline-block;
+        margin-right: 5px;
+        transition: transform 0.3s ease-out;
+      }
+      .day-container.minimized .day::before {
+        transform: rotate(-90deg);
+      }
     </style>`;
 }
 
-// Helper function to check if a date is in the past
+// Helper function to check if a date is in the past (after 12:00 PM on that day)
 function isPastDate(day) {
   const [dayNum, monthName] = day.match(/(\d+)\. (\w+)/).slice(1);
+  const currentDate = new Date();
   const dayDate = new Date(
-    `${monthName} ${dayNum}, ${new Date().getFullYear()}`
+    `${monthName} ${dayNum}, ${currentDate.getFullYear()} 12:00:00`
   );
-  return dayDate < new Date();
+
+  // If it's the current day, check if it's past noon
+  if (dayDate.toDateString() === currentDate.toDateString()) {
+    return currentDate.getHours() >= 12;
+  }
+
+  // For other days, compare dates normally
+  return dayDate < currentDate;
 }
 
 // Function to upload content to Azure Blob Storage
